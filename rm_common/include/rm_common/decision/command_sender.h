@@ -250,6 +250,10 @@ public:
     msg_.rate_yaw = 0.;
     msg_.rate_pitch = 0.;
   }
+  void setpos(geometry_msgs::PointStamped pos)
+  {
+    msg_.target_pos.point = pos.point;
+  }
   void setBulletSpeed(double bullet_speed)
   {
     msg_.bullet_speed = bullet_speed;
