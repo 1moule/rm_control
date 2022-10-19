@@ -266,6 +266,14 @@ public:
   {
     return eject_flag_;
   }
+  double getMaxPitchRate()
+  {
+    return max_pitch_vel_;
+  }
+  double getMaxYawRate()
+  {
+    return max_yaw_rate_;
+  }
 
 private:
   ros::Time last_track_;
