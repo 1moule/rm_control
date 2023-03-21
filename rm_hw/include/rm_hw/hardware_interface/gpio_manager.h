@@ -21,7 +21,10 @@ class GpioManager
 public:
   explicit GpioManager(std::mutex& mutex) : gpio_mutex_(mutex)
   {
-    gpio_thread_ = std::thread([&]() { gpioUpdate(); });
+    gpio_thread_ = std::thread([&]() {
+      while (ros::ok())
+        gpioUpdate();
+    });
   };
   ~GpioManager()
   {
