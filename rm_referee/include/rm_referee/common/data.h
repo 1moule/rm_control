@@ -50,6 +50,7 @@
 #include "rm_referee/common/protocol.h"
 
 #include <rm_msgs/ShootCmd.h>
+#include <rm_msgs/ShootState.h>
 #include <rm_msgs/DbusData.h>
 #include <rm_msgs/StateCmd.h>
 #include <rm_msgs/EventData.h>
@@ -60,21 +61,30 @@
 #include <rm_msgs/ChassisCmd.h>
 #include <rm_msgs/GameStatus.h>
 #include <rm_msgs/RfidStatus.h>
-#include <rm_msgs/StepQueueState.h>
+#include <rm_msgs/EngineerUi.h>
 #include <rm_msgs/GameRobotHp.h>
-#include <rm_msgs/CapacityData.h>
+#include <rm_msgs/BalanceState.h>
 #include <rm_msgs/DartClientCmd.h>
 #include <rm_msgs/ActuatorState.h>
+#include <rm_msgs/MapSentryData.h>
+#include <rm_msgs/RadarMarkData.h>
 #include <rm_msgs/PowerHeatData.h>
-#include <rm_msgs/SuperCapacitor.h>
 #include <rm_msgs/GimbalDesError.h>
-#include <rm_msgs/BulletRemaining.h>
+#include <rm_msgs/BulletAllowance.h>
 #include <rm_msgs/GameRobotStatus.h>
 #include <rm_msgs/ManualToReferee.h>
+#include <rm_msgs/ClientMapSendData.h>
+#include <rm_msgs/RobotsPositionData.h>
 #include <rm_msgs/DartRemainingTime.h>
 #include <rm_msgs/StatusChangeRequest.h>
+#include <rm_msgs/ClientMapReceiveData.h>
 #include <rm_msgs/SupplyProjectileAction.h>
 #include <rm_msgs/IcraBuffDebuffZoneStatus.h>
+#include <rm_msgs/PowerManagementSampleAndStatusData.h>
+#include <rm_msgs/PowerManagementSystemExceptionData.h>
+#include <rm_msgs/PowerManagementInitializationExceptionData.h>
+#include <rm_msgs/PowerManagementProcessStackOverflowData.h>
+#include <rm_msgs/PowerManagementUnknownExceptionData.h>
 
 namespace rm_referee
 {
@@ -94,6 +104,7 @@ public:
 
   int client_id_ = 0;  // recipient's id
   int robot_id_ = 0;   // recent  robot's id
+  int capacity_recent_mode_, capacity_expect_mode_;
   std::string robot_color_;
   bool referee_data_is_online_ = false;
 

@@ -16,14 +16,15 @@ add_message_files(
         DbusData.msg
         ChassisCmd.msg
         ShootCmd.msg
+        ShootState.msg
         GimbalCmd.msg
         GimbalDesError.msg
         LpData.msg
         KalmanData.msg
         MovingAverageData.msg
-        SuperCapacitor.msg
         GpioData.msg
         TofRadarData.msg
+        MultiDofCmd.msg
         TagMsg.msg
         TagMsgArray.msg
 )
@@ -51,7 +52,7 @@ add_message_files(
         GameRobotStatus.msg
         GameStatus.msg
         StateCmd.msg
-        StepQueueState.msg
+        EngineerUi.msg
         GameRobotHp.msg
         PowerHeatData.msg
         EventData.msg
@@ -61,11 +62,21 @@ add_message_files(
         DartRemainingTime.msg
         RobotHurt.msg
         ShootData.msg
-        BulletRemaining.msg
+        BulletAllowance.msg
         RfidStatus.msg
         DartClientCmd.msg
         ManualToReferee.msg
         RadarData.msg
+        RadarMarkData.msg
+        RobotsPositionData.msg
+        ClientMapSendData.msg
+        ClientMapReceiveData.msg
+        MapSentryData.msg
+        PowerManagementSampleAndStatusData.msg
+        PowerManagementInitializationExceptionData.msg
+        PowerManagementProcessStackOverflowData.msg
+        PowerManagementSystemExceptionData.msg
+        PowerManagementUnknownExceptionData.msg
 )
 
 add_action_files(

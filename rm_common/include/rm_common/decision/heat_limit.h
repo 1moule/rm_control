@@ -56,12 +56,15 @@ public:
       ROS_ERROR("Expect shoot frequency no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("burst_shoot_frequency", burst_shoot_frequency_))
       ROS_ERROR("Expect shoot frequency no defined (namespace: %s)", nh.getNamespace().c_str());
+    if (!nh.getParam("minimal_shoot_frequency", minimal_shoot_frequency_))
+      ROS_ERROR("Expect shoot frequency no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("safe_shoot_frequency", safe_shoot_frequency_))
       ROS_ERROR("Safe shoot frequency no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("heat_coeff", heat_coeff_))
       ROS_ERROR("Safe shoot heat coeff frequency no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("type", type_))
       ROS_ERROR("Shooter type no defined (namespace: %s)", nh.getNamespace().c_str());
+    nh.param("safe_speed_limit", shooter_speed_limit_, 15);
     if (type_ == "ID1_42MM")
       bullet_heat_ = 100.;
     else
@@ -73,6 +76,7 @@ public:
     LOW = 0,
     HIGH = 1,
     BURST = 2,
+    MINIMAL = 3
   } ShootHz;
 
   void setStatusOfShooter(const rm_msgs::GameRobotStatus data)
@@ -177,6 +181,16 @@ public:
     return -1;  // TODO unsafe!
   }
 
+  int getCoolingLimit()
+  {
+    return shooter_cooling_limit_;
+  }
+
+  int getCoolingHeat()
+  {
+    return shooter_cooling_heat_;
+  }
+
   void setShootFrequency(uint8_t mode)
   {
     state_ = mode;
@@ -192,7 +206,7 @@ private:
   {
     if (state_ == HeatLimit::BURST)
     {
-      shoot_frequency_ = high_shoot_frequency_;
+      shoot_frequency_ = burst_shoot_frequency_;
       burst_flag_ = true;
     }
     else if (state_ == HeatLimit::LOW)
@@ -203,6 +217,11 @@ private:
     else if (state_ == HeatLimit::HIGH)
     {
       shoot_frequency_ = high_shoot_frequency_;
+      burst_flag_ = false;
+    }
+    else if (state_ == HeatLimit::MINIMAL)
+    {
+      shoot_frequency_ = minimal_shoot_frequency_;
       burst_flag_ = false;
     }
     else
@@ -216,7 +235,7 @@ private:
   std::string type_{};
   bool burst_flag_ = false;
   double bullet_heat_, safe_shoot_frequency_{}, heat_coeff_{}, shoot_frequency_{}, low_shoot_frequency_{},
-      high_shoot_frequency_{}, burst_shoot_frequency_{};
+      high_shoot_frequency_{}, burst_shoot_frequency_{}, minimal_shoot_frequency_{};
 
   bool referee_is_online_;
   int shooter_cooling_limit_, shooter_cooling_rate_, shooter_cooling_heat_, shooter_speed_limit_;

@@ -44,33 +44,15 @@
 
 namespace rm_referee
 {
-class SuperCapacitor
-{
-public:
-  explicit SuperCapacitor() : last_get_data_time_(ros::Time::now()){};
-  void read(const std::vector<uint8_t>& rx_buffer);
-  ros::Time last_get_data_time_;
-  rm_referee::CapacityData capacity_data_;
-
-private:
-  void dtpReceivedCallBack(unsigned char receive_byte);
-  void receiveCallBack(unsigned char package_id, const unsigned char* data);
-  static float int16ToFloat(unsigned short data0);
-  unsigned char receive_buffer_[1024] = { 0 };
-  unsigned char ping_pong_buffer_[1024] = { 0 };
-  unsigned int receive_buf_counter_ = 0;
-};
-
 class Referee
 {
 public:
   Referee(ros::NodeHandle& nh) : referee_ui_(nh, base_), last_get_data_time_(ros::Time::now())
   {
+    ROS_INFO("New serial protocol loading.");
     // pub
-    super_capacitor_pub_ = nh.advertise<rm_msgs::SuperCapacitor>("super_capacitor", 1);
     game_robot_status_pub_ = nh.advertise<rm_msgs::GameRobotStatus>("game_robot_status", 1);
     game_status_pub_ = nh.advertise<rm_msgs::GameStatus>("game_status", 1);
-    capacity_data_pub_ = nh.advertise<rm_msgs::CapacityData>("capacity_data", 1);
     power_heat_data_pub_ = nh.advertise<rm_msgs::PowerHeatData>("power_heat_data", 1);
     game_robot_hp_pub_ = nh.advertise<rm_msgs::GameRobotHp>("game_robot_hp", 1);
     event_data_pub_ = nh.advertise<rm_msgs::EventData>("event_data", 1);
@@ -81,37 +63,38 @@ public:
     dart_remaining_time_pub_ = nh.advertise<rm_msgs::DartRemainingTime>("dart_remaining_time_data", 1);
     robot_hurt_pub_ = nh.advertise<rm_msgs::RobotHurt>("robot_hurt_data", 1);
     shoot_data_pub_ = nh.advertise<rm_msgs::ShootData>("shoot_data", 1);
-    bullet_remaining_pub_ = nh.advertise<rm_msgs::BulletRemaining>("bullet_remaining_data", 1);
+    bullet_allowance_pub_ = nh.advertise<rm_msgs::BulletAllowance>("bullet_allowance_data", 1);
     rfid_status_pub_ = nh.advertise<rm_msgs::RfidStatus>("rfid_status_data", 1);
     dart_client_cmd_pub_ = nh.advertise<rm_msgs::DartClientCmd>("dart_client_cmd_data", 1);
+    client_map_receive_pub_ = nh.advertise<rm_msgs::ClientMapReceiveData>("client_map_receive", 1);
+    robots_position_pub_ = nh.advertise<rm_msgs::RobotsPositionData>("robot_position", 1);
+    radar_mark_pub_ = nh.advertise<rm_msgs::RadarMarkData>("radar_mark", 1);
+    client_map_send_data_pub_ = nh.advertise<rm_msgs::ClientMapSendData>("client_map_send_data", 1);
+
+    ros::NodeHandle power_management_nh = ros::NodeHandle(nh, "power_management");
+    power_management_sample_and_status_data_pub_ =
+        power_management_nh.advertise<rm_msgs::PowerManagementSampleAndStatusData>("sample_and_status", 1);
+    power_management_initialization_exception_pub_ =
+        power_management_nh.advertise<rm_msgs::PowerManagementInitializationExceptionData>("initialization_exception",
+                                                                                           1);
+    power_management_system_exception_data_ =
+        power_management_nh.advertise<rm_msgs::PowerManagementSystemExceptionData>("system_exception", 1);
+    power_management_process_stack_overflow_pub_ =
+        power_management_nh.advertise<rm_msgs::PowerManagementProcessStackOverflowData>("stack_overflow", 1);
+    power_management_unknown_exception_pub_ =
+        power_management_nh.advertise<rm_msgs::PowerManagementUnknownExceptionData>("unknown_exception", 1);
     // initSerial
     base_.initSerial();
   };
   void read();
-  void checkUiAdd()
-  {
-    if (referee_ui_.send_ui_flag_)
-    {
-      if (referee_ui_.add_ui_flag_)
-      {
-        referee_ui_.addUi();
-        ROS_INFO("Add ui");
-        referee_ui_.add_ui_flag_ = false;
-      }
-    }
-    else
-      referee_ui_.add_ui_flag_ = true;
-  }
   void clearRxBuffer()
   {
     rx_buffer_.clear();
     rx_len_ = 0;
   }
 
-  ros::Publisher super_capacitor_pub_;
   ros::Publisher game_robot_status_pub_;
   ros::Publisher game_status_pub_;
-  ros::Publisher capacity_data_pub_;
   ros::Publisher power_heat_data_pub_;
   ros::Publisher game_robot_hp_pub_;
   ros::Publisher event_data_pub_;
@@ -121,9 +104,18 @@ public:
   ros::Publisher dart_remaining_time_pub_;
   ros::Publisher robot_hurt_pub_;
   ros::Publisher shoot_data_pub_;
-  ros::Publisher bullet_remaining_pub_;
+  ros::Publisher bullet_allowance_pub_;
   ros::Publisher rfid_status_pub_;
   ros::Publisher dart_client_cmd_pub_;
+  ros::Publisher client_map_receive_pub_;
+  ros::Publisher robots_position_pub_;
+  ros::Publisher radar_mark_pub_;
+  ros::Publisher client_map_send_data_pub_;
+  ros::Publisher power_management_sample_and_status_data_pub_;
+  ros::Publisher power_management_initialization_exception_pub_;
+  ros::Publisher power_management_system_exception_data_;
+  ros::Publisher power_management_process_stack_overflow_pub_;
+  ros::Publisher power_management_unknown_exception_pub_;
 
   Base base_;
   std::vector<uint8_t> rx_buffer_;
@@ -135,7 +127,6 @@ private:
   void getRobotInfo();
   void publishCapacityData();
 
-  SuperCapacitor super_capacitor_;
   ros::Time last_get_data_time_;
   const int k_frame_length_ = 128, k_header_length_ = 5, k_cmd_id_length_ = 2, k_tail_length_ = 2;
   const int k_unpack_buffer_length_ = 256;

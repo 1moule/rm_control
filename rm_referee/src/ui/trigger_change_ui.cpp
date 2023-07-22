@@ -12,14 +12,7 @@ void TriggerChangeUi::setContent(const std::string& content)
   display();
 }
 
-void TriggerChangeUi::display()
-{
-  graph_->setOperation(rm_referee::GraphOperation::UPDATE);
-  graph_->display();
-  graph_->sendUi(ros::Time::now());
-}
-
-void ChassisTriggerChangeUi::display()
+void ChassisTriggerChangeUi::update()
 {
   if (s_l_ == rm_msgs::DbusData::MID && s_r_ == rm_msgs::DbusData::UP)
     updateConfig(chassis_mode_, false, 1, false);
@@ -27,8 +20,8 @@ void ChassisTriggerChangeUi::display()
     updateConfig(chassis_mode_, power_limit_state_ == rm_common::PowerLimit::BURST, 0,
                  power_limit_state_ == rm_common::PowerLimit::CHARGE);
   graph_->setOperation(rm_referee::GraphOperation::UPDATE);
-  graph_->displayTwice(true);
-  graph_->sendUi(ros::Time::now());
+  checkModeChange();
+  displayTwice();
 }
 
 void ChassisTriggerChangeUi::displayInCapacity()
@@ -37,12 +30,40 @@ void ChassisTriggerChangeUi::displayInCapacity()
       base_.robot_id_ != rm_referee::RobotId::BLUE_ENGINEER)
     updateConfig(254, 0);
   graph_->setOperation(rm_referee::GraphOperation::UPDATE);
-  graph_->displayTwice(true);
-  graph_->sendUi(ros::Time::now());
+
+  displayTwice();
+}
+
+void ChassisTriggerChangeUi::checkModeChange()
+{
+  static ros::Time trigger_time;
+  static bool is_different = false;
+
+  if (base_.capacity_recent_mode_ != power_limit_state_ && !is_different)
+  {
+    is_different = true;
+    trigger_time = ros::Time::now();
+  }
+  else if (is_different)
+  {
+    if (base_.capacity_recent_mode_ == power_limit_state_)
+    {
+      is_different = false;
+      return;
+    }
+    else if ((ros::Time::now() - trigger_time).toSec() > mode_change_threshold_)
+    {
+      is_different = false;
+      display(false);
+    }
+  }
 }
 
 void ChassisTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uint8_t sub_mode, bool sub_flag)
 {
+  static ros::Time trigger_time;
+  static int expect;
+  static bool delay = false;
   if (main_mode == 254)
   {
     graph_->setContent("Cap reset");
@@ -50,14 +71,46 @@ void ChassisTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uin
     return;
   }
   graph_->setContent(getChassisState(main_mode));
-  if (main_flag)
-    graph_->setColor(rm_referee::GraphColor::ORANGE);
-  else if (sub_flag)
-    graph_->setColor(rm_referee::GraphColor::GREEN);
-  else if (sub_mode == 1)
+  if (sub_mode == 1)
     graph_->setColor(rm_referee::GraphColor::PINK);
   else
-    graph_->setColor(rm_referee::GraphColor::WHITE);
+  {
+    if ((base_.capacity_recent_mode_ == rm_common::PowerLimit::NORMAL ||
+         power_limit_state_ == rm_common::PowerLimit::NORMAL) &&
+        !delay)
+    {
+      trigger_time = ros::Time::now();
+      expect = power_limit_state_;
+      delay = true;
+    }
+    else if (delay)
+    {
+      if (expect != power_limit_state_)
+      {
+        trigger_time = ros::Time::now();
+        expect = power_limit_state_;
+      }
+      else if ((ros::Time::now() - trigger_time).toSec() > 0.2)
+      {
+        if (main_flag)
+          graph_->setColor(rm_referee::GraphColor::ORANGE);
+        else if (sub_flag)
+          graph_->setColor(rm_referee::GraphColor::GREEN);
+        else
+          graph_->setColor(rm_referee::GraphColor::WHITE);
+        delay = false;
+      }
+    }
+    else
+    {
+      if (main_flag)
+        graph_->setColor(rm_referee::GraphColor::ORANGE);
+      else if (sub_flag)
+        graph_->setColor(rm_referee::GraphColor::GREEN);
+      else
+        graph_->setColor(rm_referee::GraphColor::WHITE);
+    }
+  }
 }
 
 std::string ChassisTriggerChangeUi::getChassisState(uint8_t mode)
@@ -66,10 +119,12 @@ std::string ChassisTriggerChangeUi::getChassisState(uint8_t mode)
     return "raw";
   else if (mode == rm_msgs::ChassisCmd::FOLLOW)
     return "follow";
-  else if (mode == rm_msgs::ChassisCmd::GYRO)
-    return "gyro";
   else if (mode == rm_msgs::ChassisCmd::TWIST)
     return "twist";
+  else if (mode == rm_msgs::ChassisCmd::UP_SLOPE)
+    return "up_slope";
+  else if (mode == rm_msgs::ChassisCmd::FALLEN)
+    return "fallen";
   else
     return "error";
 }
@@ -77,7 +132,7 @@ std::string ChassisTriggerChangeUi::getChassisState(uint8_t mode)
 void ChassisTriggerChangeUi::updateChassisCmdData(const rm_msgs::ChassisCmd::ConstPtr data)
 {
   chassis_mode_ = data->mode;
-  display();
+  update();
 }
 
 void ChassisTriggerChangeUi::updateManualCmdData(const rm_msgs::ManualToReferee::ConstPtr data)
@@ -94,14 +149,15 @@ void ChassisTriggerChangeUi::updateDbusData(const rm_msgs::DbusData::ConstPtr da
   key_b_ = data->key_b;
 }
 
-void ChassisTriggerChangeUi::updateCapacityData(const rm_msgs::CapacityData data)
+void ChassisTriggerChangeUi::updateCapacityResetStatus()
 {
   displayInCapacity();
 }
 
-void ShooterTriggerChangeUi::display()
+void ShooterTriggerChangeUi::update()
 {
   updateConfig(shooter_mode_, 0, shoot_frequency_, false);
+  graph_->setOperation(rm_referee::GraphOperation::UPDATE);
   TriggerChangeUi::display();
 }
 
@@ -116,22 +172,24 @@ void ShooterTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uin
     graph_->setColor(rm_referee::GraphColor::ORANGE);
 }
 
-std::string ShooterTriggerChangeUi::getShooterState(uint8_t mode)
+std::string ShooterTriggerChangeUi::getShooterState(uint8_t state)
 {
-  if (mode == rm_msgs::ShootCmd::READY)
-    return "ready";
-  else if (mode == rm_msgs::ShootCmd::PUSH)
-    return "push";
-  else if (mode == rm_msgs::ShootCmd::STOP)
+  if (state == rm_msgs::ShootState::STOP)
     return "stop";
+  else if (state == rm_msgs::ShootState::READY)
+    return "ready";
+  else if (state == rm_msgs::ShootState::PUSH)
+    return "push";
+  else if (state == rm_msgs::ShootState::BLOCK)
+    return "block";
   else
     return "error";
 }
 
-void ShooterTriggerChangeUi::updateShootCmdData(const rm_msgs::ShootCmd::ConstPtr data)
+void ShooterTriggerChangeUi::updateShootStateData(const rm_msgs::ShootState::ConstPtr& data)
 {
-  shooter_mode_ = data->mode;
-  display();
+  shooter_mode_ = data->state;
+  update();
 }
 
 void ShooterTriggerChangeUi::updateManualCmdData(rm_msgs::ManualToReferee::ConstPtr data)
@@ -139,12 +197,12 @@ void ShooterTriggerChangeUi::updateManualCmdData(rm_msgs::ManualToReferee::Const
   shoot_frequency_ = data->shoot_frequency;
 }
 
-void GimbalTriggerChangeUi::display()
+void GimbalTriggerChangeUi::update()
 {
   updateConfig(gimbal_mode_, gimbal_eject_);
   graph_->setOperation(rm_referee::GraphOperation::UPDATE);
-  graph_->displayTwice(true);
-  graph_->sendUi(ros::Time::now());
+
+  displayTwice();
 }
 
 void GimbalTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uint8_t sub_mode, bool sub_flag)
@@ -171,7 +229,7 @@ std::string GimbalTriggerChangeUi::getGimbalState(uint8_t mode)
 void GimbalTriggerChangeUi::updateGimbalCmdData(const rm_msgs::GimbalCmd::ConstPtr data)
 {
   gimbal_mode_ = data->mode;
-  display();
+  update();
 }
 
 void GimbalTriggerChangeUi::updateManualCmdData(const rm_msgs::ManualToReferee::ConstPtr data)
@@ -179,13 +237,14 @@ void GimbalTriggerChangeUi::updateManualCmdData(const rm_msgs::ManualToReferee::
   gimbal_eject_ = data->gimbal_eject;
 }
 
-void TargetTriggerChangeUi::display()
+void TargetTriggerChangeUi::update()
 {
   if (base_.robot_id_ != rm_referee::RobotId::BLUE_HERO && base_.robot_id_ != rm_referee::RobotId::RED_HERO)
     updateConfig(det_target_, shoot_frequency_ == rm_common::HeatLimit::BURST, det_armor_target_,
                  det_color_ == rm_msgs::StatusChangeRequest::RED);
   else
     updateConfig(gimbal_eject_, shoot_frequency_, det_armor_target_, det_color_ == rm_msgs::StatusChangeRequest::RED);
+  graph_->setOperation(rm_referee::GraphOperation::UPDATE);
   TriggerChangeUi::display();
 }
 
@@ -204,8 +263,10 @@ std::string TargetTriggerChangeUi::getTargetState(uint8_t target, uint8_t armor_
 {
   if (base_.robot_id_ != rm_referee::RobotId::BLUE_HERO && base_.robot_id_ != rm_referee::RobotId::RED_HERO)
   {
-    if (target == rm_msgs::StatusChangeRequest::BUFF)
-      return "buff";
+    if (target == rm_msgs::StatusChangeRequest::SMALL_BUFF)
+      return "small_buff";
+    else if (target == rm_msgs::StatusChangeRequest::BIG_BUFF)
+      return "big_buff";
     else if (target == rm_msgs::StatusChangeRequest::ARMOR && armor_target == rm_msgs::StatusChangeRequest::ARMOR_ALL)
       return "armor_all";
     else if (target == rm_msgs::StatusChangeRequest::ARMOR &&
@@ -236,8 +297,60 @@ void TargetTriggerChangeUi::updateManualCmdData(const rm_msgs::ManualToReferee::
   gimbal_eject_ = data->gimbal_eject;
 }
 
-void TargetTriggerChangeUi::updateShootCmdData(const rm_msgs::ShootCmd::ConstPtr data)
+void TargetTriggerChangeUi::updateShootStateData(const rm_msgs::ShootState::ConstPtr& data)
 {
+  update();
+}
+
+void TargetViewAngleTriggerChangeUi::update()
+{
+  updateConfig(track_id_ == 0, false);
+  graph_->setOperation(rm_referee::GraphOperation::UPDATE);
+  displayTwice();
+}
+
+void TargetViewAngleTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uint8_t sub_mode, bool sub_flag)
+{
+  if (main_mode)
+    graph_->setColor(rm_referee::GraphColor::WHITE);
+  else
+    graph_->setColor(rm_referee::GraphColor::GREEN);
+}
+
+void TargetViewAngleTriggerChangeUi::updateTrackID(int id)
+{
+  track_id_ = id;
+  update();
+}
+
+void PolygonTriggerChangeGroupUi::update()
+{
+  for (auto graph : graph_vector_)
+    graph.second->setOperation(rm_referee::GraphOperation::UPDATE);
+  display();
+}
+
+void CameraTriggerChangeUi::updateCameraName(const std_msgs::StringConstPtr& data)
+{
+  current_camera_ = data->data;
+  update();
+}
+
+void CameraTriggerChangeUi::updateConfig(uint8_t main_mode, bool main_flag, uint8_t sub_mode, bool sub_flag)
+{
+  graph_->setContent(current_camera_);
+  if (current_camera_ == camera1_name_)
+    graph_->setColor(rm_referee::GraphColor::CYAN);
+  else if (current_camera_ == camera2_name_)
+    graph_->setColor(rm_referee::GraphColor::ORANGE);
+  else
+    graph_->setColor(rm_referee::GraphColor::WHITE);
+}
+
+void CameraTriggerChangeUi::update()
+{
+  updateConfig();
+  graph_->setOperation(rm_referee::GraphOperation::UPDATE);
   display();
 }
 }  // namespace rm_referee
