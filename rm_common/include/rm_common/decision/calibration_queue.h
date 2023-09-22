@@ -50,11 +50,14 @@ public:
     ROS_ASSERT(rpc_value.hasMember("start_controllers"));
     ROS_ASSERT(rpc_value.hasMember("stop_controllers"));
     ROS_ASSERT(rpc_value.hasMember("services_name"));
+    ROS_ASSERT(rpc_value.hasMember("flip_controller"));
     ROS_ASSERT(rpc_value["start_controllers"].getType() == XmlRpc::XmlRpcValue::TypeArray);
     ROS_ASSERT(rpc_value["stop_controllers"].getType() == XmlRpc::XmlRpcValue::TypeArray);
     ROS_ASSERT(rpc_value["services_name"].getType() == XmlRpc::XmlRpcValue::TypeArray);
+    ROS_ASSERT(rpc_value["flip_controller"].getType() == XmlRpc::XmlRpcValue::TypeBoolean);
     start_controllers = getControllersName(rpc_value["start_controllers"]);
     stop_controllers = getControllersName(rpc_value["stop_controllers"]);
+    flip_controller_ = rpc_value["flip_controller"];
     for (int i = 0; i < rpc_value["services_name"].size(); ++i)
     {
       query_services.push_back(new QueryCalibrationServiceCaller(nh, rpc_value["services_name"][i]));
@@ -79,6 +82,7 @@ public:
   }
   std::vector<std::string> start_controllers, stop_controllers;
   std::vector<QueryCalibrationServiceCaller*> query_services;
+  bool flip_controller_ = false;
 
 private:
   static std::vector<std::string> getControllersName(XmlRpc::XmlRpcValue& rpc_value)
@@ -119,7 +123,7 @@ public:
     for (auto service : calibration_services_)
       service.setCalibratedFalse();
   }
-  void update(const ros::Time& time, bool flip_controllers)
+  void update(const ros::Time& time)
   {
     if (calibration_services_.empty())
       return;
@@ -129,7 +133,7 @@ public:
     {
       if (calibration_itr_->isCalibrated())
       {
-        if (flip_controllers)
+        if (calibration_itr_->flip_controller_)
           controller_manager_.startControllers(calibration_itr_->stop_controllers);
         controller_manager_.stopControllers(calibration_itr_->start_controllers);
         calibration_itr_++;
@@ -151,10 +155,6 @@ public:
         controller_manager_.stopControllers(calibration_itr_->stop_controllers);
       }
     }
-  }
-  void update(const ros::Time& time)
-  {
-    update(time, true);
   }
   bool isCalibrated()
   {
