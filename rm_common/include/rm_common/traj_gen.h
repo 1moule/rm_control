@@ -215,7 +215,7 @@ public:
   void update(T v)
   {
     T y = x1_ - v + h_ * x2_;
-    T a0 = sqrt(h_ * h_ * r_ * r_ + 4 * r_ * fabs(y));
+    T a0 = sqrt(h_ * h_ * r_ * r_ + 8 * r_ * fabs(y));
     T a = x2_ + 0.5 * (a0 - h_ * r_) * (y > 0 ? 1 : -1);
     T u = fabs(a) > h_ * r_ ? -r_ * (a > 0 ? 1 : -1) : -r_ * a / (h_ * r_);
     x1_ = x1_ + h_ * x2_;
@@ -235,4 +235,42 @@ public:
 private:
   T r_{}, h_{};
   T x1_{}, x2_{};
+};
+
+template <typename T>
+class LinearTrajectoryPlanner
+{
+public:
+  LinearTrajectoryPlanner()
+  {
+  }
+  void clear(T x1, T x2)
+  {
+    x1_ = x1;
+    x2_ = x2;
+  }
+  void update(T v, T period)
+  {
+    if (des_ != v)
+    {
+      des_ = v;
+      dis_ = des_ - x1_;
+    }
+    if (period_ != period)
+      x2_ = dis_ / period;
+    x1_ += x2_ * 0.001;
+  }
+
+  T getX1() const
+  {
+    return x1_;
+  }
+
+  T getX2() const
+  {
+    return x2_;
+  }
+
+private:
+  T x1_{}, x2_{}, dis_{}, des_{}, period_{};
 };
