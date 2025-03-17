@@ -207,6 +207,11 @@ public:
   NonlinearTrackingDifferentiator(T r, T h) : r_(r), h_(h)
   {
   }
+  void clear(T v)
+  {
+    x1_ = v;
+    x2_ = 0.;
+  }
   void update(T v, T v_dot)
   {
     if ((v > 3. && x1_ < -3.) || (v < -3 && x1_ > 3))
