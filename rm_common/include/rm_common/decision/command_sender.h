@@ -314,9 +314,9 @@ public:
       time_constant = time_constant_rc_;
     else
       time_constant = time_constant_pc_;
-    msg_.rate_yaw = msg_.rate_yaw + (scale_yaw * max_yaw_vel_ - msg_.rate_yaw) * (0.01 / (time_constant + 0.01));
+    msg_.rate_yaw = msg_.rate_yaw + (scale_yaw * max_yaw_vel_ - msg_.rate_yaw) * (0.001 / (time_constant + 0.001));
     msg_.rate_pitch =
-        msg_.rate_pitch + (scale_pitch * max_pitch_vel_ - msg_.rate_pitch) * (0.01 / (time_constant + 0.01));
+        msg_.rate_pitch + (scale_pitch * max_pitch_vel_ - msg_.rate_pitch) * (0.001 / (time_constant + 0.001));
     if (eject_flag_)
     {
       msg_.rate_yaw *= eject_sensitivity_;
