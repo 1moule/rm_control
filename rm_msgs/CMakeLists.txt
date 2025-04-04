@@ -13,6 +13,7 @@ add_message_files(
         FILES
         ActuatorState.msg
         BalanceState.msg
+        BulletSolverState.msg
         BusState.msg
         DbusData.msg
         ExchangerMsg.msg
