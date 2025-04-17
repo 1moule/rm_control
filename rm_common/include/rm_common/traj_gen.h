@@ -199,3 +199,38 @@ public:
     }
   }
 };
+
+template <typename T>
+class NonlinearTrackingDifferentiator
+{
+public:
+  NonlinearTrackingDifferentiator(T r, T h) : r_(r), h_(h)
+  {
+  }
+  void clear(T v)
+  {
+    x1_ = v;
+    x2_ = 0.;
+  }
+  void update(T v)
+  {
+    T y = x1_ - v + h_ * x2_;
+    T a0 = sqrt(h_ * h_ * r_ * r_ + 8 * r_ * fabs(y));
+    T a = x2_ + 0.5 * (a0 - h_ * r_) * (y > 0 ? 1 : -1);
+    T u = fabs(a) > h_ * r_ ? -r_ * (a > 0 ? 1 : -1) : -r_ * a / (h_ * r_);
+    x1_ = x1_ + h_ * x2_;
+    x2_ = x2_ + h_ * u;
+  }
+  T getPos() const
+  {
+    return x1_;
+  }
+  T getVel() const
+  {
+    return x2_;
+  }
+
+private:
+  T r_{}, h_{};
+  T x1_{}, x2_{};
+};
