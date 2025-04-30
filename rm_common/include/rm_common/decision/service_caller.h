@@ -46,6 +46,7 @@
 #include <controller_manager_msgs/SwitchController.h>
 #include <control_msgs/QueryCalibrationState.h>
 #include <rm_msgs/StatusChange.h>
+#include <rm_msgs/CameraStatus.h>
 
 namespace rm_common
 {
@@ -270,6 +271,31 @@ public:
 
 private:
   bool is_set_{};
+};
+
+class SwitchCameraCaller : public ServiceCallerBase<rm_msgs::CameraStatus>
+{
+public:
+  explicit SwitchCameraCaller(ros::NodeHandle& nh)
+    : ServiceCallerBase<rm_msgs::CameraStatus>(nh, "/camera/status_switch")
+  {
+    service_.request.camera_id = rm_msgs::CameraStatusRequest::ID_0;
+    callService();
+  }
+  void switchCamera()
+  {
+    service_.request.camera_id = service_.request.camera_id == rm_msgs::CameraStatusRequest::ID_0 ?
+                                     rm_msgs::CameraStatusRequest::ID_1 :
+                                     rm_msgs::CameraStatusRequest::ID_0;
+  }
+  void setCamera(uint8_t camera_id)
+  {
+    service_.request.camera_id = camera_id;
+  }
+  int getCamera()
+  {
+    return service_.request.camera_id;
+  }
 };
 
 }  // namespace rm_common

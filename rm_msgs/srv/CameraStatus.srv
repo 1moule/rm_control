@@ -1,3 +1,6 @@
 bool imu_request
+uint8 camera_id
+uint8 ID_0 = 0
+uint8 ID_1 = 1
 ---
 bool is_open
