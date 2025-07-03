@@ -293,14 +293,16 @@ public:
       ROS_ERROR("Max yaw velocity no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("max_pitch_vel", max_pitch_vel_))
       ROS_ERROR("Max pitch velocity no defined (namespace: %s)", nh.getNamespace().c_str());
-    if (!nh.getParam("time_constant_rc", time_constant_rc_))
+    if (!nh.getParam("filter_coeff_rc", filter_coeff_rc_))
       ROS_ERROR("Time constant rc no defined (namespace: %s)", nh.getNamespace().c_str());
-    if (!nh.getParam("time_constant_pc", time_constant_pc_))
+    if (!nh.getParam("filter_coeff_pc", filter_coeff_pc_))
       ROS_ERROR("Time constant pc no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("track_timeout", track_timeout_))
       ROS_ERROR("Track timeout no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("eject_sensitivity", eject_sensitivity_))
       eject_sensitivity_ = 1.;
+    ramp_rate_yaw_ = new RampFilter<double>(40., 0.01);
+    ramp_rate_pitch_ = new RampFilter<double>(40., 0.01);
   }
   ~GimbalCommandSender() = default;
   void setRate(double scale_yaw, double scale_pitch)
@@ -309,14 +311,17 @@ public:
       scale_yaw = scale_yaw > 0 ? 1 : -1;
     if (std::abs(scale_pitch) > 1)
       scale_pitch = scale_pitch > 0 ? 1 : -1;
-    double time_constant{};
+    double filter_coeff{};
     if (use_rc_)
-      time_constant = time_constant_rc_;
+      filter_coeff = filter_coeff_rc_;
     else
-      time_constant = time_constant_pc_;
-    msg_.rate_yaw = msg_.rate_yaw + (scale_yaw * max_yaw_vel_ - msg_.rate_yaw) * (0.001 / (time_constant + 0.001));
-    msg_.rate_pitch =
-        msg_.rate_pitch + (scale_pitch * max_pitch_vel_ - msg_.rate_pitch) * (0.001 / (time_constant + 0.001));
+      filter_coeff = filter_coeff_pc_;
+    msg_.rate_yaw = (filter_coeff * scale_yaw * max_yaw_vel_) + (1 - filter_coeff) * msg_.rate_yaw;
+    msg_.rate_pitch = (filter_coeff * scale_pitch * max_pitch_vel_) + (1 - filter_coeff) * msg_.rate_pitch;
+    ramp_rate_yaw_->input(msg_.rate_yaw);
+    ramp_rate_pitch_->input(msg_.rate_pitch);
+    msg_.rate_yaw = ramp_rate_yaw_->output();
+    msg_.rate_pitch = ramp_rate_pitch_->output();
     if (eject_flag_)
     {
       msg_.rate_yaw *= eject_sensitivity_;
@@ -360,8 +365,9 @@ public:
 
 private:
   double max_yaw_vel_{}, max_pitch_vel_{}, track_timeout_{}, eject_sensitivity_ = 1.;
-  double time_constant_rc_{}, time_constant_pc_{};
+  double filter_coeff_rc_{}, filter_coeff_pc_{};
   bool eject_flag_{}, use_rc_{};
+  RampFilter<double>*ramp_rate_yaw_{}, *ramp_rate_pitch_{};
 };
 
 class ShooterCommandSender : public TimeStampCommandSenderBase<rm_msgs::ShootCmd>
