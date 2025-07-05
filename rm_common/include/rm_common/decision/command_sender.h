@@ -277,7 +277,7 @@ public:
     msg_.accel.angular.z = accel_z_.output(msg_.power_limit);
     TimeStampCommandSenderBase<rm_msgs::ChassisCmd>::sendCommand(time);
   }
-  void setZero() override{};
+  void setZero() override {};
   PowerLimit* power_limit_;
 
 private:
@@ -294,9 +294,9 @@ public:
     if (!nh.getParam("max_pitch_vel", max_pitch_vel_))
       ROS_ERROR("Max pitch velocity no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("filter_coeff_rc", filter_coeff_rc_))
-      ROS_ERROR("Time constant rc no defined (namespace: %s)", nh.getNamespace().c_str());
+      ROS_ERROR("Filter coeff rc no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("filter_coeff_pc", filter_coeff_pc_))
-      ROS_ERROR("Time constant pc no defined (namespace: %s)", nh.getNamespace().c_str());
+      ROS_ERROR("Filter coeff pc no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("track_timeout", track_timeout_))
       ROS_ERROR("Track timeout no defined (namespace: %s)", nh.getNamespace().c_str());
     if (!nh.getParam("eject_sensitivity", eject_sensitivity_))
@@ -572,7 +572,7 @@ public:
   {
     return heat_limit_->getShootFrequencyMode();
   }
-  void setZero() override{};
+  void setZero() override {};
   HeatLimit* heat_limit_{};
 
 private:
@@ -612,7 +612,7 @@ public:
   {
     return msg_.data;
   }
-  void setZero() override{};
+  void setZero() override {};
 };
 
 class LegCommandSender : public CommandSenderBase<rm_msgs::LegCmd>
@@ -638,7 +638,7 @@ public:
   {
     return msg_.leg_length;
   }
-  void setZero() override{};
+  void setZero() override {};
 };
 
 class Vel3DCommandSender : public HeaderStampCommandSenderBase<geometry_msgs::TwistStamped>
@@ -716,7 +716,7 @@ public:
   {
     CommandSenderBase<std_msgs::Float64>::sendCommand(time);
   }
-  void setZero() override{};
+  void setZero() override {};
 
 private:
   bool state{};
@@ -754,7 +754,7 @@ public:
   {
     CommandSenderBase<std_msgs::Float64>::sendCommand(time);
   }
-  void setZero() override{};
+  void setZero() override {};
 
 private:
   bool state{};
@@ -831,7 +831,7 @@ public:
       return -1;
     }
   }
-  void setZero() override{};
+  void setZero() override {};
 
 private:
   std::string joint_{};
@@ -855,7 +855,7 @@ public:
   {
     CommandSenderBase<std_msgs::String>::sendCommand(time);
   }
-  void setZero() override{};
+  void setZero() override {};
 
 private:
   std::string camera1_name_{}, camera2_name_{};
