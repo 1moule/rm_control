@@ -37,7 +37,7 @@
 #include <cstring>
 
 template <typename T>
-MovingAverageFilter<T>::MovingAverageFilter(int num_data) : num_data_(num_data), idx_(0), sum_(0.0)
+MovingAverageFilter<T>::MovingAverageFilter(int num_data) : num_data_(num_data), count_(0), idx_(0), sum_(0.0)
 {
   buffer_ = new T[num_data_];
   memset((void*)buffer_, 0.0, sizeof(T) * num_data_);
@@ -46,7 +46,10 @@ MovingAverageFilter<T>::MovingAverageFilter(int num_data) : num_data_(num_data),
 template <typename T>
 void MovingAverageFilter<T>::input(T input_value)
 {
-  sum_ -= buffer_[idx_];
+  if (count_ < num_data_)
+    ++count_;
+  else
+    sum_ -= buffer_[idx_];
   sum_ += input_value;
   buffer_[idx_] = input_value;
   ++idx_;
@@ -56,13 +59,17 @@ void MovingAverageFilter<T>::input(T input_value)
 template <typename T>
 T MovingAverageFilter<T>::output()
 {
-  return sum_ / num_data_;
+  if (count_ == 0)
+    return T();
+  return sum_ / count_;
 }
 
 template <typename T>
 void MovingAverageFilter<T>::clear()
 {
   sum_ = 0.0;
+  count_ = 0;
+  idx_ = 0;
   memset((void*)buffer_, 0.0, sizeof(T) * num_data_);
 }
 

@@ -96,6 +96,7 @@ public:
 private:
   T* buffer_;
   int num_data_;
+  int count_;
   int idx_;
   T sum_;
 };
