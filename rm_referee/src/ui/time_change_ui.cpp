@@ -501,4 +501,30 @@ void FriendBulletsTimeChangeGroupUi::updateConfig()
   }
 }
 
+void TargetHpTimeChangeUi::setEnemyHp(const rm_msgs::GameRobotHp& data)
+{
+  (void)data;
+}
+
+void TargetHpTimeChangeUi::updateTrackID(int id)
+{
+  target_id_ = id;
+  updateTargeHptData();
+}
+
+void TargetHpTimeChangeUi::updateTargeHptData()
+{
+  target_hp_ = 0;
+  updateForQueue();
+}
+
+void TargetHpTimeChangeUi::updateConfig()
+{
+  graph_->setIntNum(target_hp_);
+  if (target_hp_ > 50)
+    graph_->setColor(rm_referee::GraphColor::GREEN);
+  else
+    graph_->setColor(rm_referee::GraphColor::ORANGE);
+}
+
 }  // namespace rm_referee

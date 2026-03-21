@@ -6,8 +6,8 @@ uint16 infantry_3_position_x
 uint16 infantry_3_position_y
 uint16 infantry_4_position_x
 uint16 infantry_4_position_y
-uint16 infantry_5_position_x
-uint16 infantry_5_position_y
+uint16 reserved_1
+uint16 reserved_2
 uint16 sentry_position_x
 uint16 sentry_position_y
 
